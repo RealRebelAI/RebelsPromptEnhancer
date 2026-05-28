@@ -75,6 +75,10 @@ for Desktop:
 ```
 pip install -r requirements.txt
  ```
+if you run into errors, update your build dependencies as well:
+```
+..\..\python_embeded\python.exe -m pip install --upgrade pip setuptools wheel scikit-build-core
+```
 
 4. **Download a model file** (see Models below) and place it directly inside this node pack's folder.
 
