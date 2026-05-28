@@ -1,4 +1,4 @@
-# Rebels Prompt Nodes for ComfyUI
+# Rebels Prompt Enhancer Nodes for ComfyUI
 **WORK IN PROGRESS**
 
 <img width="1080" height="585" alt="Screenshot (134)" src="https://github.com/user-attachments/assets/fb86c0d2-121f-43f8-82e2-d93c348522a6" />
