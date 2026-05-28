@@ -1,6 +1,9 @@
 # Rebels Prompt Nodes for ComfyUI
 **WORK IN PROGRESS**
 
+<img width="1235" height="585" alt="Screenshot (134)" src="https://github.com/user-attachments/assets/ae761976-8407-4a64-a46f-1c48010429a9" />
+
+
 Two ultra-lightweight, local-only nodes for ComfyUI:
 
 - 🚀 **Rebels Prompt Enhancer** — runs a small GGUF LLM locally to expand or rewrite your prompt into a detailed image / video / edit description, then completely flushes VRAM so your diffusion model has the GPU to itself.
@@ -134,6 +137,9 @@ Typical wiring:
 2. Queue runs and iterate — each run produces a new prompt because the seed changes.
 3. When you find a prompt you love, toggle the enhancer to **LOCKED**. From then on the enhancer skips model loading and returns the cached prompt every run. Seed changes are ignored while locked.
 4. Independently, the Locker gates downstream execution — flip it to `LOCKED IN` to allow the prompt to flow to the sampler.
+
+   <img width="330" height="213" alt="Screenshot (135)" src="https://github.com/user-attachments/assets/ca287396-cba3-4942-8be9-70bf62192274" />
+
 
 The two locks are intentionally separate:
 - **Enhancer lock** freezes the prompt (cache).
