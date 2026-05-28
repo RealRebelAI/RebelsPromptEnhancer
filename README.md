@@ -66,6 +66,10 @@ Output:
    ```
    ../../python_embeded/python.exe -m pip install -r requirements.txt
    ```
+or for Desktop:
+```
+pip install -r requirements.txt
+ ```
 
 4. **Download a model file** (see Models below) and place it directly inside this node pack's folder.
 
