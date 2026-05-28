@@ -2,6 +2,9 @@
 
 **WORK IN PROGRESS - More models coming soon!**
 
+<img width="1114" height="741" alt="Screenshot (138)" src="https://github.com/user-attachments/assets/a9141ae4-0f99-48e6-959d-5f68f1669145" />
+
+
 Two ultra-lightweight, local-only nodes for ComfyUI built around **Qwen3.5-4B**:
 
 - 🚀 **Rebels Prompt Enhancer** — runs Qwen3.5-4B locally as a GGUF to expand or rewrite your prompt into a detailed image / video / edit description, then completely flushes VRAM so your diffusion model has the GPU to itself.
