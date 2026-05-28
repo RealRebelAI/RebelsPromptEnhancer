@@ -1,7 +1,8 @@
 # Rebels Prompt Nodes for ComfyUI
 **WORK IN PROGRESS**
 
-<img width="1235" height="585" alt="Screenshot (134)" src="https://github.com/user-attachments/assets/ae761976-8407-4a64-a46f-1c48010429a9" />
+<img width="1080" height="585" alt="Screenshot (134)" src="https://github.com/user-attachments/assets/fb86c0d2-121f-43f8-82e2-d93c348522a6" />
+
 
 
 Two ultra-lightweight, local-only nodes for ComfyUI:
