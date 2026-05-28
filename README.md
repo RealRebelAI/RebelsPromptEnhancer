@@ -62,11 +62,13 @@ Output:
    git clone https://github.com/RealRebelAI/RebelsPromptEnhancer_-minicpm5-1b-ggufs-.git
    ```
 
-3. Install dependencies (open cmd inside the cloned folder):
+3. Install dependencies
+
+for portable (open cmd inside the cloned folder):
    ```
    ../../python_embeded/python.exe -m pip install -r requirements.txt
    ```
-or for Desktop:
+for Desktop:
 ```
 pip install -r requirements.txt
  ```
