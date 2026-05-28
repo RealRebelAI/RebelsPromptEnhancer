@@ -13,6 +13,8 @@ class RebelsPromptEnhancer:
                 "raw_prompt": ("STRING", {"multiline": True}),
                 "purpose": (["Image Prompt (Photorealistic)", "Video Prompt (Cinematic)", "Editing (Inpainting/I2V)"],),
                 "precision": (["Efficiency (Q4_K_M)", "High Fidelity (F16)"],),
+                # FIX 1: The Seed Widget forces ComfyUI to re-run the node every time, preventing caching.
+                "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}), 
             },
         }
 
@@ -21,11 +23,14 @@ class RebelsPromptEnhancer:
     FUNCTION = "enhance"
     CATEGORY = "Rebel AI"
 
-    def enhance(self, raw_prompt, purpose, precision):
+    # Don't forget to add 'seed' to the function arguments here!
+    def enhance(self, raw_prompt, purpose, precision, seed):
+        
+        # FIX 2: Step-by-Step procedural instructions. This stops 1B models from overthinking.
         system_instructions = {
-            "Image Prompt (Photorealistic)": "You are a prompt expansion engine. Write out your engineering thoughts and brainstorming first. When you are finished, type the exact word '[REBEL_OUTPUT]' on a brand new line, and then write your final highly detailed, cinematic, photorealistic 8k image prompt with dramatic lighting. INVENT missing details to make it epic. NEVER talk to the user.",
-            "Video Prompt (Cinematic)": "You are a video prompt engine. Write out your engineering thoughts and brainstorming first. When you are finished, type the exact word '[REBEL_OUTPUT]' on a brand new line, and then write your final detailed video generation prompt focusing on fluid motion and cinematic camera movement. INVENT missing details to make it epic. NEVER talk to the user.",
-            "Editing (Inpainting/I2V)": "You are an image editor engine. Write out your engineering thoughts and brainstorming first. When you are finished, type the exact word '[REBEL_OUTPUT]' on a brand new line, and then write your final precise prompt describing the new transformed scene. INVENT missing details if needed. NEVER talk to the user."
+            "Image Prompt (Photorealistic)": "You are a prompt expansion machine.\nSTEP 1: Write EXACTLY ONE SENTENCE of brainstorming. Do not overthink. Do not waste tokens.\nSTEP 2: Type the exact word '[REBEL_OUTPUT]' on a new line.\nSTEP 3: Write a highly detailed, cinematic, photorealistic 8k image prompt. Invent missing epic details. Do not talk to the user.",
+            "Video Prompt (Cinematic)": "You are a video prompt machine.\nSTEP 1: Write EXACTLY ONE SENTENCE of brainstorming. Do not overthink. Do not waste tokens.\nSTEP 2: Type the exact word '[REBEL_OUTPUT]' on a new line.\nSTEP 3: Write a detailed video generation prompt focusing on fluid motion and cinematic camera movement. Invent missing epic details. Do not talk to the user.",
+            "Editing (Inpainting/I2V)": "You are an image editor machine.\nSTEP 1: Write EXACTLY ONE SENTENCE of brainstorming. Do not overthink. Do not waste tokens.\nSTEP 2: Type the exact word '[REBEL_OUTPUT]' on a new line.\nSTEP 3: Write a precise prompt describing the new transformed scene. Invent missing details. Do not talk to the user."
         }
         
         secret_injected_prompt = f"{system_instructions[purpose]}\n\nRAW IDEA TO EXPAND:\n\" {raw_prompt} \""
@@ -48,17 +53,18 @@ class RebelsPromptEnhancer:
         model_filename = files[0]
         model_path = os.path.join(node_dir, model_filename)
         
-        print(f"🚀 [Rebel AI] Loading model: {model_filename}")
+        print(f"🚀 [Rebel AI] Loading model: {model_filename} with Seed: {seed}")
         
         from llama_cpp import Llama
-        llm = Llama(model_path=model_path, n_gpu_layers=-1, verbose=False, n_ctx=2048)
+        # Wire the ComfyUI seed directly into the LLM so it generates fresh ideas
+        llm = Llama(model_path=model_path, n_gpu_layers=-1, verbose=False, n_ctx=2048, seed=seed)
         
         output = llm.create_chat_completion(
             messages=[
                 {"role": "user", "content": secret_injected_prompt}
             ],
-            max_tokens=1024,
-            temperature=0.5
+            max_tokens=2048,
+            temperature=0.6 
         )
         
         raw_output = output['choices'][0]['message']['content']
