@@ -28,10 +28,11 @@ app.registerExtension({
                 app
             ).widget;
 
+            // Read-only, but otherwise use ComfyUI's native widget styling so it
+            // matches the size/weight/font of a normal text widget.
             widget.inputEl.readOnly = true;
-            widget.inputEl.style.opacity = 0.85;
-            widget.inputEl.style.fontFamily = "monospace";
-            widget.inputEl.style.fontSize = "11px";
+            widget.inputEl.style.fontSize = "13px";
+            widget.inputEl.style.lineHeight = "1.4";
             widget.value = text;
 
             requestAnimationFrame(() => {
