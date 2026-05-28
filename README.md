@@ -17,8 +17,8 @@ Designed to operate as a "disposable" node—it loads the LLM to process your pr
    `cd ComfyUI/custom_nodes`
 2. Clone this repository:
    `git clone https://github.com/RealRebelAI/RebelsPromptEnhancer_-minicpm5-1b-ggufs-.git`
-3. Install dependencies:
-   `../python_embeded/python.exe -m pip install llama-cpp-python`
+3. Install dependencies (open cmd inside prompt enhancer custom node folder):
+   `../python_embeded/python.exe -m pip install requirements.txt`
 4. **Download Models:** Place your `minicpm5-1b.Q4_K_M.gguf` and `minicpm5-1b.F16.gguf` files directly inside the `RebelsPromptEnhancer` folder.
    https://huggingface.co/Abiray/MiniCPM5-1B-GGUF/tree/main
    
