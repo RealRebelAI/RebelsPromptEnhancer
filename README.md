@@ -18,7 +18,7 @@ No API keys, no external calls, 100% private.
 
 - **Local-Only:** Everything runs on your machine via `llama-cpp-python`. Nothing leaves the box.
 - **Aggressive VRAM Cleanup:** The LLM is fully unloaded after each generation. Zero residual VRAM for the diffusion stage.
-- **Two Model Families: **MiniCPM5-1B is CURRENTLY OUT OF ORDER** Pick **Qwen3.5-4B** (much better instruction following, multimodal-capable model used text-only here).
+- **Two Model Families: **MiniCPM5-1B is CURRENTLY OUT OF ORDER!!!** Pick **Qwen3.5-4B** (much better instruction following, multimodal-capable model used text-only here).
 - **Two Quant Tiers per Family:** Efficiency (smallest GGUF) or Quality (largest GGUF).
 - **Reasoning-Aware Cleaning:** Automatic post-processor strips chain-of-thought from reasoning models, extracts only the final prompt. For Qwen3 models, `/no_think` is appended to the system prompt to disable reasoning entirely.
 - **Three Purpose Modes:** Photorealistic Image, Cinematic Video, or Inpainting/I2V editing.
