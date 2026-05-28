@@ -10,18 +10,16 @@ class RebelsPromptEnhancer:
         pass
 
     # Class-level cache survives across executions within a ComfyUI session.
-    # Cleared on ComfyUI restart. Keyed by (raw_prompt, purpose, model, precision)
-    # — deliberately excludes seed so locking truly freezes the output.
+    # Cleared on ComfyUI restart. Keyed by (raw_prompt, purpose, precision) —
+    # deliberately excludes seed so locking truly freezes the output.
     _cache = {}
 
-    MODEL_OPTIONS = ["MiniCPM5-1B", "Qwen3.5-4B"]
-    PRECISION_OPTIONS = ["Efficiency (Smallest)", "Quality (Largest)"]
+    PRECISION_OPTIONS = ["Efficiency (UD-IQ2)", "Quality (UD-Q8)"]
 
-    MODEL_SEARCH = {
-        ("MiniCPM5-1B", "Efficiency (Smallest)"): ["minicpm5", "q4_k_m"],
-        ("MiniCPM5-1B", "Quality (Largest)"):     ["minicpm5", "f16"],
-        ("Qwen3.5-4B", "Efficiency (Smallest)"):  ["qwen3.5-4b", "ud-iq2"],
-        ("Qwen3.5-4B", "Quality (Largest)"):      ["qwen3.5-4b", "ud-q8"],
+    # precision -> list of substrings that must ALL appear in filename
+    PRECISION_SEARCH = {
+        "Efficiency (UD-IQ2)": ["qwen3.5-4b", "ud-iq2"],
+        "Quality (UD-Q8)":     ["qwen3.5-4b", "ud-q8"],
     }
 
     @classmethod
@@ -34,7 +32,6 @@ class RebelsPromptEnhancer:
                     "Video Prompt (Cinematic)",
                     "Editing (Inpainting/I2V)",
                 ],),
-                "model": (s.MODEL_OPTIONS,),
                 "precision": (s.PRECISION_OPTIONS,),
                 "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
                 "lock_in": ("BOOLEAN", {
@@ -51,29 +48,31 @@ class RebelsPromptEnhancer:
     CATEGORY = "Rebel AI"
 
     @classmethod
-    def IS_CHANGED(cls, raw_prompt, purpose, model, precision, seed, lock_in):
+    def IS_CHANGED(cls, raw_prompt, purpose, precision, seed, lock_in):
         """When locked, return a stable hash so ComfyUI uses its cached output
-        and doesn't even call enhance(). When live, return NaN so it always
-        re-executes (NaN != NaN)."""
+        and doesn't even call enhance(). When live, NaN forces re-execution."""
         if lock_in:
-            return f"LOCKED|{raw_prompt}|{purpose}|{model}|{precision}"
+            return f"LOCKED|{raw_prompt}|{purpose}|{precision}"
         return float("nan")
 
+    # /no_think is appended to disable Qwen3's built-in reasoning mode.
     SYSTEM_INSTRUCTIONS = {
         "Image Prompt (Photorealistic)": (
             "Rewrite the user's input as one descriptive paragraph for a photorealistic "
-            "8k image with cinematic lighting. Output only the paragraph."
+            "8k image with cinematic lighting. Output only the paragraph. /no_think"
         ),
         "Video Prompt (Cinematic)": (
             "Rewrite the user's input as one descriptive paragraph for a cinematic "
-            "video shot with camera movement and mood. Output only the paragraph."
+            "video shot with camera movement and mood. Output only the paragraph. /no_think"
         ),
         "Editing (Inpainting/I2V)": (
             "Rewrite the user's edit instruction as one descriptive paragraph describing "
-            "the final transformed scene as it appears. Output only the paragraph."
+            "the final transformed scene as it appears. Output only the paragraph. /no_think"
         ),
     }
 
+    # Safety net cleaning — these run after generation but are mostly no-ops
+    # because /no_think keeps the model from producing reasoning in the first place.
     REASONING_MARKERS = (
         "let me", "i'll ", "i will ", "i need", "i must", "i should",
         "the prompt is", "the user", "key elements", "brainstorm",
@@ -88,12 +87,6 @@ class RebelsPromptEnhancer:
         "enhanced prompt:", "expanded prompt:", "prompt:",
         "output:", "answer:", "final prompt:", "final:", "example:",
     )
-
-    def _get_system_prompt(self, model, purpose):
-        base = self.SYSTEM_INSTRUCTIONS[purpose]
-        if model.startswith("Qwen3"):
-            return base + " /no_think"
-        return base
 
     def _find_model_files(self, node_dir, terms):
         terms = [t.lower() for t in terms]
@@ -170,9 +163,9 @@ class RebelsPromptEnhancer:
             text = text[len(raw):].lstrip(" ,.:-\"'\n")
         return text.strip().strip('"\'')
 
-    def enhance(self, raw_prompt, purpose, model, precision, seed, lock_in):
+    def enhance(self, raw_prompt, purpose, precision, seed, lock_in):
         # Cache key intentionally excludes seed — locking freezes regardless of seed changes.
-        cache_key = (raw_prompt, purpose, model, precision)
+        cache_key = (raw_prompt, purpose, precision)
 
         # --- LOCKED PATH: return cached output if we have one ---
         if lock_in and cache_key in self._cache:
@@ -199,11 +192,9 @@ class RebelsPromptEnhancer:
         # --- LIVE PATH: generate fresh ---
         node_dir = os.path.dirname(os.path.abspath(__file__))
 
-        terms = self.MODEL_SEARCH.get((model, precision))
+        terms = self.PRECISION_SEARCH.get(precision)
         if not terms:
-            raise ValueError(
-                f"Rebels Prompt Enhancer: unknown combination {model} / {precision}"
-            )
+            raise ValueError(f"Rebels Prompt Enhancer: unknown precision {precision}")
 
         files = self._find_model_files(node_dir, terms)
         if not files:
@@ -216,7 +207,7 @@ class RebelsPromptEnhancer:
         model_file = files[0]
         model_path = os.path.join(node_dir, model_file)
 
-        n_ctx = 4096 if model.startswith("Qwen3") else 2048
+        n_ctx = 4096
 
         llm = Llama(
             model_path=model_path,
@@ -229,7 +220,7 @@ class RebelsPromptEnhancer:
         try:
             output = llm.create_chat_completion(
                 messages=[
-                    {"role": "system", "content": self._get_system_prompt(model, purpose)},
+                    {"role": "system", "content": self.SYSTEM_INSTRUCTIONS[purpose]},
                     {"role": "user", "content": raw_prompt},
                 ],
                 max_tokens=400,
@@ -253,15 +244,14 @@ class RebelsPromptEnhancer:
             final_prompt = raw_output
 
         meta_block = (
-            f"File:       {model_file}\n"
-            f"Family:     {model}\n"
-            f"Precision:  {precision}\n"
-            f"Purpose:    {purpose}\n"
-            f"Context:    {n_ctx}\n"
-            f"Seed:       {seed}\n"
-            f"Raw chars:  {len(raw_output)}\n"
-            f"Clean chars:{len(final_prompt)}\n"
-            f"Stripped:   {len(raw_output) - len(final_prompt)} chars\n"
+            f"File:        {model_file}\n"
+            f"Precision:   {precision}\n"
+            f"Purpose:     {purpose}\n"
+            f"Context:     {n_ctx}\n"
+            f"Seed:        {seed}\n"
+            f"Raw chars:   {len(raw_output)}\n"
+            f"Clean chars: {len(final_prompt)}\n"
+            f"Stripped:    {len(raw_output) - len(final_prompt)} chars\n"
         )
 
         thought = (
