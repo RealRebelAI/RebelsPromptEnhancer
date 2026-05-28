@@ -18,7 +18,9 @@ Designed to operate as a "disposable" node—it loads the LLM to process your pr
 3. Install dependencies:
    `../python_embeded/python.exe -m pip install llama-cpp-python`
 4. **Download Models:** Place your `minicpm5-1b.Q4_K_M.gguf` and `minicpm5-1b.F16.gguf` files directly inside the `RebelsPromptEnhancer` folder.
-5. Restart ComfyUI.
+   https://huggingface.co/Abiray/MiniCPM5-1B-GGUF/tree/main
+   
+6. Restart ComfyUI.
 
 ## Usage
 Find the node under **"Rebel AI" > 🚀 Rebels Prompt Enhancer**.
