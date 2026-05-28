@@ -1,6 +1,6 @@
 # Rebels Prompt Enhancer Nodes for ComfyUI
 
-**WORK IN PROGRESS**
+**WORK IN PROGRESS - More models coming soon!**
 
 Two ultra-lightweight, local-only nodes for ComfyUI built around **Qwen3.5-4B**:
 
