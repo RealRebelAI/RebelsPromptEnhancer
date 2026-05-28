@@ -1,5 +1,7 @@
 # Rebels Prompt Enhancer for ComfyUI
 
+WORK IN PROGRESS!
+
 An ultra-lightweight, local-only prompt enhancement node for ComfyUI. Built for high-performance workflows using the **MiniCPM5-1B** model. 
 
 Designed to operate as a "disposable" node—it loads the LLM to process your prompt and **completely flushes VRAM** immediately after, ensuring zero interference with your generation models.
