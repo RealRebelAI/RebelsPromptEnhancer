@@ -12,7 +12,7 @@ VERSION 2 Now LIVE!
 Four ultra-lightweight, local-only nodes for ComfyUI:
 
 - 🚀 **Rebels Prompt Enhancer** — curated Qwen3.5-4B text rewriter with a layered style system
-- 🧪 **Rebels Prompt Enhancer (Custom GGUF)** — bring your own model, full control over every parameter
+- 🧪 **Rebels Prompt Enhancer (Custom GGUF - experimental)** — bring your own model, full control over every parameter
 - 👁️ **Rebels Image to Prompt** — vision-capable node that turns a reference image into a prompt
 - 🔒 **Rebels Prompt Locker** — workflow gate that displays the passed-through prompt on its node face
 
@@ -90,6 +90,7 @@ Outputs `enhanced_prompt` (clean string for the sampler) and `thought_process` (
 
 ### 🧪 Rebels Prompt Enhancer (Custom GGUF)
 
+(WARNING: this node is experimental and will sometimes provide bad results depending on gguf you use and format along with settings in the node. i suggest tweaking temperature and various settings until correct output is achieved.)
 Same layered style system as the curated enhancer, but scans the folder for any `.gguf` and lets you pick. Adds full sampling controls.
 
 Additional inputs vs the curated node:
