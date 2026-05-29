@@ -2,6 +2,8 @@
 
 **WORK IN PROGRESS - More features coming soon!**
 
+VERSION 2 Now LIVE!
+
 <img width="1599" height="515" alt="Screenshot (141)" src="https://github.com/user-attachments/assets/fe6061c6-0c69-4e53-b5e3-d841773b4cbf" />
 
 
