@@ -2,7 +2,8 @@
 
 **WORK IN PROGRESS - More features coming soon!**
 
-<img width="1114" height="741" alt="Screenshot (138)" src="https://github.com/user-attachments/assets/a9141ae4-0f99-48e6-959d-5f68f1669145" />
+<img width="1599" height="515" alt="Screenshot (141)" src="https://github.com/user-attachments/assets/fe6061c6-0c69-4e53-b5e3-d841773b4cbf" />
+
 
 Four ultra-lightweight, local-only nodes for ComfyUI:
 
