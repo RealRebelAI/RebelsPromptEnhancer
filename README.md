@@ -144,7 +144,7 @@ The on-node text display requires the bundled `web/js/rebels_locker_display.js` 
 
 2. Clone this repository:
    ```
-   git clone https://github.com/RealRebelAI/RebelsPromptEnhancer_-minicpm5-1b-ggufs-.git](https://github.com/RealRebelAI/RebelsPromptEnhancer.git
+   git clone https://github.com/RealRebelAI/RebelsPromptEnhancer.git 
    ```
 
 3. Install dependencies.
