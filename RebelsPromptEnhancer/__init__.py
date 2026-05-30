@@ -36,6 +36,8 @@ REASONING_MARKERS = (
     "as per the rules", "according to the rules", "the rules say",
     "let's", "okay so", "first,", "second,", "third,",
     "i can say", "i might", "since this", "so i",
+    "thinking process", "analyze the request", "deconstruct",
+    "step-by-step", "step by step", "drafting",
 )
 
 PREAMBLES = (
@@ -47,6 +49,15 @@ PREAMBLES = (
     "in the image", "i can see", "i see",
 )
 
+# Stop sequences to cut off verbose preamble patterns before they eat the token budget.
+VERBOSE_STOPS = [
+    "\n\nUser:", "\n\nAssistant:", "Human:",
+    "</think>", "</thinking>",
+    "Thinking Process:", "**Thinking Process",
+    "## Thinking", "### Thinking",
+    "Analysis:", "**Analysis",
+]
+
 
 def _strip_thinking_tags(text):
     for pat in (
@@ -55,6 +66,35 @@ def _strip_thinking_tags(text):
         r"\[THINK(?:ING)?\].*?\[/THINK(?:ING)?\]",
     ):
         text = re.sub(pat, "", text, flags=re.DOTALL | re.IGNORECASE)
+    return text
+
+
+def _extract_drafted_content(text):
+    """For verbose models that show reasoning then draft a prompt, find the
+    draft. Looks for section markers like 'Drafting', 'Final Prompt', 'Output'
+    and returns content after the last occurrence."""
+    marker_patterns = [
+        r"(?:^|\n)\s*\d+\.\s*\*{0,2}\s*Draft(?:ing)?[^\n]*",
+        r"(?:^|\n)#{0,3}\s*\*{0,2}\s*Draft(?:ing)?[^\n]*",
+        r"(?:^|\n)#{0,3}\s*\*{0,2}\s*(?:Final\s+(?:Prompt|Output|Answer)|Final|Prompt|Output|Result)\s*:?\s*\*{0,2}",
+    ]
+    last_match_end = -1
+    for pat in marker_patterns:
+        for m in re.finditer(pat, text, re.IGNORECASE):
+            if m.end() > last_match_end:
+                last_match_end = m.end()
+
+    if last_match_end > 0:
+        candidate = text[last_match_end:].strip()
+        candidate = candidate.lstrip(":*-• \t\n")
+        candidate = re.sub(
+            r"\*{1,2}\s*(?:Subject|Setting|Lighting|Composition|Mood|Style|Environment|Atmosphere|Scene|Background|Foreground|Pose|Camera)\s*:?\s*\*{0,2}\s*",
+            "", candidate, flags=re.IGNORECASE,
+        )
+        candidate = re.sub(r"(?:^|\n)\s*[-*•]\s+", " ", candidate)
+        candidate = re.sub(r"\s+", " ", candidate).strip()
+        if len(candidate) > 40:
+            return candidate
     return text
 
 
@@ -106,8 +146,10 @@ def _strip_preambles(text):
 
 
 def _clean_output(text, original_input=""):
+    """Aggressive cleaning for prompt rewriter outputs."""
     text = text.strip()
     text = _strip_thinking_tags(text)
+    text = _extract_drafted_content(text)
     text = _extract_final_paragraph(text)
     text = _strip_preambles(text)
     if original_input:
@@ -115,6 +157,13 @@ def _clean_output(text, original_input=""):
         if raw and text.lower().startswith(raw.lower()):
             text = text[len(raw):].lstrip(" ,.:-\"'\n")
     return text.strip().strip('"\'')
+
+
+def _clean_chat_output(text):
+    """Light cleaning for general chat. Keeps conversational structure intact."""
+    text = text.strip()
+    text = _strip_thinking_tags(text)
+    return text.strip()
 
 
 def _free_llm(llm):
@@ -128,13 +177,15 @@ def _free_llm(llm):
 
 
 def _list_ggufs(exclude_mmproj=True):
+    """List .gguf files in the node folder. Excludes any file with 'mmproj'
+    anywhere in the name (those are vision projectors, not standalone models)."""
     try:
         node_dir = os.path.dirname(os.path.abspath(__file__))
         files = []
         for f in os.listdir(node_dir):
             if not f.lower().endswith(".gguf"):
                 continue
-            if exclude_mmproj and f.lower().startswith("mmproj"):
+            if exclude_mmproj and "mmproj" in f.lower():
                 continue
             files.append(f)
         files.sort()
@@ -144,11 +195,13 @@ def _list_ggufs(exclude_mmproj=True):
 
 
 def _list_mmproj():
+    """List mmproj projector files. Matches 'mmproj' ANYWHERE in the filename,
+    so it catches mmproj-F16.gguf, moondream2-mmproj-f16.gguf, etc."""
     try:
         node_dir = os.path.dirname(os.path.abspath(__file__))
         files = sorted(
             f for f in os.listdir(node_dir)
-            if f.lower().endswith(".gguf") and f.lower().startswith("mmproj")
+            if f.lower().endswith(".gguf") and "mmproj" in f.lower()
         )
         return files if files else ["NO_MMPROJ_FILE_FOUND"]
     except Exception:
@@ -242,27 +295,12 @@ MODEL_FORMAT_INSTRUCTIONS = {
 
 AESTHETIC_OPTIONS = [
     "None (no aesthetic injection)",
-    "Photorealistic",
-    "Cinematic Film",
-    "Anime / Manga",
-    "Studio Ghibli",
-    "Pixar / 3D Animation",
-    "Comic Book / Graphic Novel",
-    "Concept Art",
-    "Oil Painting",
-    "Watercolor",
-    "Pencil Sketch",
-    "Cyberpunk",
-    "Steampunk",
-    "Fantasy",
-    "Sci-Fi",
-    "Horror / Dark",
-    "Vintage / Retro Film",
-    "Film Noir",
-    "Glamour / Editorial",
-    "Minimalist",
-    "Surreal / Dreamy",
-    "3D Render / CGI",
+    "Photorealistic", "Cinematic Film", "Anime / Manga", "Studio Ghibli",
+    "Pixar / 3D Animation", "Comic Book / Graphic Novel", "Concept Art",
+    "Oil Painting", "Watercolor", "Pencil Sketch",
+    "Cyberpunk", "Steampunk", "Fantasy", "Sci-Fi", "Horror / Dark",
+    "Vintage / Retro Film", "Film Noir", "Glamour / Editorial",
+    "Minimalist", "Surreal / Dreamy", "3D Render / CGI",
 ]
 
 AESTHETIC_DESCRIPTORS = {
@@ -360,17 +398,23 @@ AESTHETIC_DESCRIPTORS = {
     ),
 }
 
+PROMPT_CLOSER = (
+    "Output ONLY the final prompt as a single block of text. "
+    "Do NOT show thinking, reasoning, analysis, drafts, or markdown sections. "
+    "Do NOT write 'Thinking Process', 'Analysis', 'Drafting', 'Step-by-Step', "
+    "or any section headers. Start your response immediately with the prompt text itself."
+)
+
 
 def build_layered_system_prompt(purpose, model_format, aesthetic,
                                  extra_instructions="", append_no_think=False):
-    """Stitch purpose + aesthetic + model format into a single system prompt."""
     parts = [PURPOSE_FRAMING[purpose]]
     if aesthetic in AESTHETIC_DESCRIPTORS:
         parts.append(AESTHETIC_DESCRIPTORS[aesthetic])
     parts.append(MODEL_FORMAT_INSTRUCTIONS[model_format])
     if extra_instructions.strip():
         parts.append(extra_instructions.strip())
-    parts.append("Output only the prompt, nothing else.")
+    parts.append(PROMPT_CLOSER)
     text = " ".join(parts)
     if append_no_think:
         text = text.rstrip() + " /no_think"
@@ -469,8 +513,8 @@ class RebelsPromptEnhancer:
                     {"role": "system", "content": sys_prompt},
                     {"role": "user", "content": raw_prompt},
                 ],
-                max_tokens=500, temperature=0.7, top_p=0.9, repeat_penalty=1.15,
-                stop=["\n\nUser:", "\n\nAssistant:", "Human:", "</think>", "</thinking>"],
+                max_tokens=600, temperature=0.7, top_p=0.9, repeat_penalty=1.15,
+                stop=VERBOSE_STOPS,
             )
             raw_output = output["choices"][0]["message"]["content"].strip()
         finally:
@@ -507,7 +551,7 @@ class RebelsPromptEnhancer:
 
 
 # =========================================================================
-# Node 2: Custom GGUF enhancer (any text model)
+# Node 2: Custom GGUF enhancer
 # =========================================================================
 
 class RebelsPromptEnhancerCustom:
@@ -528,12 +572,12 @@ class RebelsPromptEnhancerCustom:
                 "extra_instructions": ("STRING", {
                     "multiline": True,
                     "default": "",
-                    "placeholder": "Optional extra instructions appended to the system prompt (e.g. 'Avoid clichés.' or 'Emphasize hands.')",
+                    "placeholder": "Optional extra instructions appended to the system prompt.",
                 }),
                 "system_prompt_override": ("STRING", {
                     "multiline": True,
                     "default": "",
-                    "placeholder": "If non-empty, this REPLACES the entire layered system prompt. Leave blank to use Purpose+Format+Aesthetic.",
+                    "placeholder": "If non-empty, REPLACES the entire layered system prompt.",
                 }),
                 "append_no_think": ("BOOLEAN", {
                     "default": False,
@@ -542,7 +586,7 @@ class RebelsPromptEnhancerCustom:
                 }),
                 "n_gpu_layers": ("INT", {"default": -1, "min": -1, "max": 999, "step": 1}),
                 "n_ctx": ("INT", {"default": 4096, "min": 512, "max": 32768, "step": 512}),
-                "max_tokens": ("INT", {"default": 500, "min": 50, "max": 4096, "step": 50}),
+                "max_tokens": ("INT", {"default": 800, "min": 50, "max": 4096, "step": 50}),
                 "temperature": ("FLOAT", {"default": 0.7, "min": 0.0, "max": 2.0, "step": 0.05}),
                 "top_p": ("FLOAT", {"default": 0.9, "min": 0.0, "max": 1.0, "step": 0.05}),
                 "repeat_penalty": ("FLOAT", {"default": 1.15, "min": 1.0, "max": 2.0, "step": 0.05}),
@@ -630,7 +674,7 @@ class RebelsPromptEnhancerCustom:
                 ],
                 max_tokens=max_tokens, temperature=temperature, top_p=top_p,
                 repeat_penalty=repeat_penalty,
-                stop=["\n\nUser:", "\n\nAssistant:", "Human:", "</think>", "</thinking>"],
+                stop=VERBOSE_STOPS,
             )
             raw_output = output["choices"][0]["message"]["content"].strip()
         finally:
@@ -800,7 +844,6 @@ class RebelsImageToPrompt:
     def _build_instruction(self, vision_task, model_format, aesthetic, custom_instruction):
         if vision_task == "Custom Instruction":
             return custom_instruction.strip() or "Describe this image."
-
         if vision_task == "Caption + Format (apply model_format below)":
             base = (
                 "Describe this image faithfully, then format the description according "
@@ -809,9 +852,8 @@ class RebelsImageToPrompt:
             base += " " + MODEL_FORMAT_INSTRUCTIONS[model_format]
             if aesthetic in AESTHETIC_DESCRIPTORS:
                 base += " " + AESTHETIC_DESCRIPTORS[aesthetic]
-            base += " Output only the formatted prompt."
+            base += " " + PROMPT_CLOSER
             return base
-
         base = self.VISION_TASK_INSTRUCTIONS[vision_task]
         if aesthetic in AESTHETIC_DESCRIPTORS:
             base += " " + AESTHETIC_DESCRIPTORS[aesthetic]
@@ -926,7 +968,159 @@ class RebelsImageToPrompt:
 
 
 # =========================================================================
-# Node 4: Locker
+# Node 4: General LLM Console
+# =========================================================================
+
+class RebelsLLMConsole:
+    def __init__(self):
+        pass
+
+    _cache = {}
+
+    DEFAULT_SYSTEM_PROMPT = (
+        "You are a helpful, knowledgeable assistant. Answer directly and concisely "
+        "without unnecessary preamble. If asked a technical question, be precise. "
+        "If asked an open-ended question, be thoughtful."
+    )
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "question": ("STRING", {
+                    "multiline": True,
+                    "placeholder": "Ask anything…",
+                }),
+                "model_file": (_list_ggufs(),),
+                "system_prompt": ("STRING", {
+                    "multiline": True,
+                    "default": s.DEFAULT_SYSTEM_PROMPT,
+                }),
+                "append_no_think": ("BOOLEAN", {
+                    "default": False,
+                    "label_on": "Append /no_think",
+                    "label_off": "Don't append",
+                }),
+                "n_gpu_layers": ("INT", {"default": -1, "min": -1, "max": 999, "step": 1}),
+                "n_ctx": ("INT", {"default": 4096, "min": 512, "max": 32768, "step": 512}),
+                "max_tokens": ("INT", {"default": 800, "min": 50, "max": 4096, "step": 50}),
+                "temperature": ("FLOAT", {"default": 0.7, "min": 0.0, "max": 2.0, "step": 0.05}),
+                "top_p": ("FLOAT", {"default": 0.9, "min": 0.0, "max": 1.0, "step": 0.05}),
+                "repeat_penalty": ("FLOAT", {"default": 1.15, "min": 1.0, "max": 2.0, "step": 0.05}),
+                "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
+                "lock_in": ("BOOLEAN", {
+                    "default": False,
+                    "label_on": "🔒 LOCKED (cached)",
+                    "label_off": "🔄 LIVE (asking)",
+                }),
+            },
+        }
+
+    RETURN_TYPES = ("STRING", "STRING")
+    RETURN_NAMES = ("response", "thought_process")
+    FUNCTION = "chat"
+    CATEGORY = "Rebel AI"
+    OUTPUT_NODE = True
+
+    @classmethod
+    def IS_CHANGED(cls, question, model_file, system_prompt, append_no_think,
+                   n_gpu_layers, n_ctx, max_tokens, temperature, top_p,
+                   repeat_penalty, seed, lock_in):
+        if lock_in:
+            return (f"LOCKED|{question}|{model_file}|{system_prompt}|"
+                    f"{append_no_think}|{temperature}|{top_p}|{repeat_penalty}")
+        return float("nan")
+
+    def chat(self, question, model_file, system_prompt, append_no_think,
+             n_gpu_layers, n_ctx, max_tokens, temperature, top_p,
+             repeat_penalty, seed, lock_in):
+
+        cache_key = (question, model_file, system_prompt, append_no_think,
+                     temperature, top_p, repeat_penalty)
+
+        if lock_in and cache_key in self._cache:
+            c = self._cache[cache_key]
+            response = c["response"]
+            thought = (
+                f"=== 🔒 LOCKED — Returning Cached Response ===\n"
+                f"No model load.\n\n"
+                f"=== Original Run Info ===\n{c['meta']}\n"
+                f"=== System Prompt ===\n{c['sys_prompt']}\n\n"
+                f"=== Cached Response ===\n{response}"
+            )
+            return {"ui": {"text": [response]}, "result": (response, thought)}
+
+        if model_file == "NO_GGUF_FILES_IN_FOLDER":
+            raise FileNotFoundError("Drop a .gguf in the node folder and restart ComfyUI.")
+        node_dir = os.path.dirname(os.path.abspath(__file__))
+        model_path = os.path.join(node_dir, model_file)
+        if not os.path.isfile(model_path):
+            raise FileNotFoundError(f"Selected file not found: {model_path}. Restart ComfyUI to refresh.")
+
+        sys_prompt = system_prompt.strip() or self.DEFAULT_SYSTEM_PROMPT
+        if append_no_think:
+            sys_prompt = sys_prompt.rstrip() + " /no_think"
+
+        llm = Llama(
+            model_path=model_path,
+            n_gpu_layers=n_gpu_layers,
+            verbose=False,
+            n_ctx=n_ctx,
+            seed=seed,
+        )
+        try:
+            output = llm.create_chat_completion(
+                messages=[
+                    {"role": "system", "content": sys_prompt},
+                    {"role": "user", "content": question},
+                ],
+                max_tokens=max_tokens,
+                temperature=temperature,
+                top_p=top_p,
+                repeat_penalty=repeat_penalty,
+                stop=["\n\nUser:", "\n\nHuman:", "</think>", "</thinking>"],
+            )
+            raw_output = output["choices"][0]["message"]["content"].strip()
+        finally:
+            _free_llm(llm)
+
+        response = _clean_chat_output(raw_output)
+        if not response.strip():
+            response = raw_output
+
+        gpu_label = "all" if n_gpu_layers < 0 else ("CPU only" if n_gpu_layers == 0 else f"{n_gpu_layers} layers")
+        meta_block = (
+            f"File:           {model_file}\n"
+            f"GPU layers:     {gpu_label}\n"
+            f"Context:        {n_ctx}\n"
+            f"Max tokens:     {max_tokens}\n"
+            f"Temperature:    {temperature}\n"
+            f"top_p:          {top_p}\n"
+            f"repeat_penalty: {repeat_penalty}\n"
+            f"/no_think:      {'yes' if append_no_think else 'no'}\n"
+            f"Seed:           {seed}\n"
+            f"Question chars: {len(question)}\n"
+            f"Response chars: {len(response)}\n"
+        )
+        thought = (
+            f"=== 🔄 LIVE — Fresh Response ===\n\n"
+            f"=== Run Settings ===\n{meta_block}\n"
+            f"=== System Prompt ===\n{sys_prompt}\n\n"
+            f"=== Question ===\n{question}\n\n"
+            f"=== Response ===\n{response}"
+        )
+
+        self._cache[cache_key] = {
+            "response": response,
+            "meta": meta_block,
+            "sys_prompt": sys_prompt,
+        }
+
+        return {"ui": {"text": [response]}, "result": (response, thought)}
+
+
+# =========================================================================
+# Node 5: Locker
 # =========================================================================
 
 class RebelsPromptLocker:
@@ -964,6 +1158,7 @@ NODE_CLASS_MAPPINGS = {
     "RebelsPromptEnhancer": RebelsPromptEnhancer,
     "RebelsPromptEnhancerCustom": RebelsPromptEnhancerCustom,
     "RebelsImageToPrompt": RebelsImageToPrompt,
+    "RebelsLLMConsole": RebelsLLMConsole,
     "RebelsPromptLocker": RebelsPromptLocker,
 }
 
@@ -971,6 +1166,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "RebelsPromptEnhancer": "🚀 Rebels Prompt Enhancer",
     "RebelsPromptEnhancerCustom": "🧪 Rebels Prompt Enhancer (Custom GGUF)",
     "RebelsImageToPrompt": "👁️ Rebels Image to Prompt",
+    "RebelsLLMConsole": "🧠 Rebels LLM Console",
     "RebelsPromptLocker": "🔒 Rebels Prompt Locker",
 }
 
