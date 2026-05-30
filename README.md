@@ -13,7 +13,7 @@ Four ultra-lightweight, local-only nodes for ComfyUI:
 
 - 🚀 **Rebels Prompt Enhancer** — curated Qwen3.5-4B text rewriter with a layered style system
 - 🧪 **Rebels Prompt Enhancer (Custom GGUF - experimental)** — bring your own model, full control over every parameter
-- 👁️ **Rebels Image to Prompt** — vision-capable node that turns a reference image into a prompt
+- 👁️ **Rebels Image to Prompt** (EXPERIMENTAL, NEED WORK) — vision-capable node that turns a reference image into a prompt
 - 🔒 **Rebels Prompt Locker** — workflow gate that displays the passed-through prompt on its node face
 
 No API keys, no external calls, 100% private. Aggressive VRAM cleanup so your diffusion model gets the GPU back immediately after the prompt is generated.
