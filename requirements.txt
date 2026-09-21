@@ -1,0 +1,5 @@
+# Uses the llama-cpp-python already installed/resolved for ComfyUI.
+# V3.2 does not require downgrading or replacing it.
+llama-cpp-python
+numpy
+Pillow
