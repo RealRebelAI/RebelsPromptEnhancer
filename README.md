@@ -1,14 +1,16 @@
+
+
+# Rebels Prompt Enhancer V3 for ComfyUI
+
+<img width="1236" height="570" alt="Screenshot (257)" src="https://github.com/user-attachments/assets/83b3f8d6-53fd-4ce0-a255-1903db6c21cd" />
+
+
 ### V3.3.6 — negative prompt leak hotfix
 
 - Fixes negative-prompt sections leaking into the positive `final_prompt` when **Negative Prompt = Off**.
 - Strips explicit trailing sections labeled `Negative prompt:` / `Negative:` from positive prompts.
 - Preserves explicit user exclusions in the main prose, but stops inventing a separate negative section inside the positive output.
 - Does not change the working portable CUDA/CPU llama-server architecture.
-
-# Rebels Prompt Enhancer V3 for ComfyUI
-
-
-### V3.3.6 — Long/Max no-fail hotfix
 
 - Fixes V3.3.4 causing ComfyUI execution errors when Qwen remained below the Long/Max target after repair attempts.
 - Long/Max still receive up to five in-server expansion attempts.
