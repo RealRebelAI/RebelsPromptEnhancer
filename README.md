@@ -1,5 +1,8 @@
 # Rebels Prompt Enhancer V3 for ComfyUI
 
+<img width="1236" height="570" alt="Screenshot (257)" src="https://github.com/user-attachments/assets/c6eb764d-4c77-4c52-9a23-00931f2f1b51" />
+
+
 
 ### V3.3.5 — Long/Max no-fail hotfix
 
