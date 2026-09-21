@@ -1,5 +1,8 @@
 # Rebels Prompt Enhancer V3 for ComfyUI
 
+<img width="1552" height="760" alt="Screenshot 2026-09-20 223638" src="https://github.com/user-attachments/assets/2bb9b833-8f1d-44ca-9e1e-5d3f32218950" />
+
+
 **Current Version: 3.2.7**
 
 A local prompt enhancement toolkit for ComfyUI built around lightweight GGUF language models.
